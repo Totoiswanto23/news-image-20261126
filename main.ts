@@ -24,6 +24,12 @@ const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a
 if (!bytes.subarray(0, 8).equals(pngSignature)) {
   throw new Error("entry.png is not a PNG file");
 }
+// A whole PNG needs at least the 8-byte signature plus the 25-byte IHDR
+// chunk; without that check a truncated file would fail later with a
+// confusing out-of-range read instead of a clear error.
+if (bytes.length < 33 || bytes.subarray(12, 16).toString("ascii") !== "IHDR") {
+  throw new Error("entry.png is truncated: no IHDR chunk");
+}
 const width = bytes.readUInt32BE(16);
 const height = bytes.readUInt32BE(20);
 if (width > 1024 || height > 1024) {
